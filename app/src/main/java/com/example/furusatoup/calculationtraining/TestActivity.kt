@@ -1,5 +1,6 @@
 package com.example.furusatoup.calculationtraining
 
+import android.content.Intent
 import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.SoundPool
@@ -40,11 +41,18 @@ class TestActivity : AppCompatActivity(), View.OnClickListener {
         numberOfRemaining = numberOfQuestion
         numberOfCorrect = 0
 
+//        答えあわせボタンが押されたら
         buttonAnswerCheck.setOnClickListener {
-            answerCheck()
+            if (textViewAnswer.text.toString() != "" && textViewAnswer.text.toString() != "-") {
+                answerCheck()
+            }
         }
 
-        buttonBack.setOnClickListener {  }
+//        戻るボタンが押されたら
+        buttonBack.setOnClickListener {
+//            前の画面に戻るだけならfinish
+            finish()
+        }
 
         button0.setOnClickListener(this)
         button1.setOnClickListener(this)
@@ -178,10 +186,6 @@ class TestActivity : AppCompatActivity(), View.OnClickListener {
 
         }
 
-
-
-
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     override fun onClick(v: View?) {
