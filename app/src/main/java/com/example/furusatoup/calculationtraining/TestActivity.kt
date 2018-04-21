@@ -1,14 +1,32 @@
 package com.example.furusatoup.calculationtraining
 
+import android.media.AudioAttributes
+import android.media.AudioManager
+import android.media.SoundPool
+import android.os.Build
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
+import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_test.*
 import java.util.*
+import kotlin.concurrent.schedule
 
 class TestActivity : AppCompatActivity(), View.OnClickListener {
+    var numberOfQuestion : Int = 0
+
     var numberOfRemaining: Int = 0
+
+    var numberOfCorrect : Int = 0
+
+    lateinit var soundPool: SoundPool
+
+    var intSoundIdCorrect : Int = 0
+
+    var intSoundIdIncorrect : Int = 0
+
+    lateinit var timer : Timer
 
 
 
@@ -17,9 +35,10 @@ class TestActivity : AppCompatActivity(), View.OnClickListener {
         setContentView(R.layout.activity_test)
 
         val bundle = intent.extras
-        val numberOfQuestion : Int = bundle.getInt("numberOfQuestion")
+        numberOfQuestion = bundle.getInt("numberOfQuestion")
         textViewRemaining.text = numberOfQuestion.toString()
         numberOfRemaining = numberOfQuestion
+        numberOfCorrect = 0
 
         buttonAnswerCheck.setOnClickListener {
             answerCheck()
@@ -41,6 +60,35 @@ class TestActivity : AppCompatActivity(), View.OnClickListener {
         buttonC.setOnClickListener(this)
 
         question()
+    }
+
+    override fun onResume() {
+        super.onResume()
+//        soundPoolの準備
+        soundPool =  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP){
+            SoundPool.Builder().setAudioAttributes(AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .build())
+                    .setMaxStreams(1)
+                    .build()
+        } else {
+            SoundPool(1, AudioManager.STREAM_MUSIC, 0)
+        }
+//        効果音ファイルをメモリにロード
+        intSoundIdCorrect = soundPool.load(this,R.raw.sound_correct,1)
+        intSoundIdIncorrect = soundPool.load(this,R.raw.sound_incorrect,1)
+
+//        タイマーの準備
+        timer = Timer()
+
+    }
+
+    override fun onPause() {
+        super.onPause()
+//        効果音の後片付け
+        soundPool.release()
+//        タイマーのキャンセル
+        timer.cancel()
     }
 
     private fun question() {
@@ -97,6 +145,42 @@ class TestActivity : AppCompatActivity(), View.OnClickListener {
 
 //        画像を見えるようにする
         imageView.visibility = View.VISIBLE
+
+        val intMyAnswer : Int = (textViewAnswer.text.toString() ).toInt()
+
+        val intRealAnswer : Int =
+                if (textViewOperator.text == "+"){
+                    textViewLeft.text.toString().toInt() + textViewRight.text.toString().toInt()
+                } else {
+                    textViewLeft.text.toString().toInt() - textViewRight.text.toString().toInt()
+                }
+        if (intMyAnswer == intRealAnswer){
+            numberOfCorrect += 1
+            textViewCorrect.text = numberOfCorrect.toString()
+            imageView.setImageResource(R.drawable.pic_correct)
+            soundPool.play(intSoundIdCorrect, 1.0f, 1.0f, 0, 0, 1.0f)
+        } else {
+            imageView.setImageResource(R.drawable.pic_incorrect)
+            soundPool.play(intSoundIdIncorrect, 1.0f, 1.0f, 0, 0, 1.0f)
+        }
+
+        val intPoint : Int = ( ( numberOfCorrect.toDouble() / (numberOfQuestion.toDouble() - numberOfRemaining.toDouble()) ) * 100 ).toInt()
+        textViewPoint.text = intPoint.toString()
+
+        if (numberOfRemaining == 0){
+//            残り問題数がなくなった場合の処理
+            buttonBack.isEnabled = true
+            buttonAnswerCheck.isEnabled = false
+            textViewMessage.text = "テスト終了"
+        } else {
+//            問題が残っている場合の処理
+            timer.schedule(1000, { runOnUiThread { question() } })
+
+        }
+
+
+
+
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
